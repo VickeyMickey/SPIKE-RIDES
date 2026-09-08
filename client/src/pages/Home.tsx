@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  Banknote,
   Bike,
+  BriefcaseBusiness,
   CarFront,
   Check,
   ChevronDown,
@@ -11,15 +13,21 @@ import {
   Compass,
   Crown,
   CreditCard,
+  CircleDollarSign,
   Heart,
   Languages,
+  LockKeyhole,
   LoaderCircle,
+  LogIn,
   MapPin,
   MessageCircle,
   MessageSquare,
   Navigation,
   Pencil,
   Phone,
+  Power,
+  Radio,
+  Route,
   RotateCcw,
   Send,
   ShieldCheck,
@@ -30,6 +38,8 @@ import {
   Trophy,
   UserRound,
   Users,
+  WalletCards,
+  Wifi,
   X,
   Zap,
 } from "lucide-react";
@@ -39,6 +49,9 @@ type RideStep = "pick" | "bid" | "matching" | "matched";
 type Accent = "gold" | "crimson";
 type DiscoverCategory = "Mascot Hunt" | "Driver Life" | "Business";
 type RankView = "riders" | "hunters";
+type DriverTabId = "home" | "earnings" | "subscription" | "driverProfile";
+type DriverRole = "passenger" | "driver";
+type DriverMode = "rider" | "driver";
 
 type Tab = {
   id: TabId;
@@ -92,6 +105,13 @@ type RideHistoryEntry = {
   driver: string;
   price: string;
   vehicle: string;
+};
+
+type DriverDemand = {
+  area: string;
+  detail: string;
+  level: string;
+  width: string;
 };
 
 const tabs: Tab[] = [
@@ -268,6 +288,12 @@ const rideHistory: RideHistoryEntry[] = [
   { from: "CBD · Kimathi St", to: "Upper Hill", date: "Sun, 01 Sep · 11:28", driver: "Kevin Kiptoo", price: "KSh 310", vehicle: "Spike Econ" },
 ];
 
+const driverDemand: DriverDemand[] = [
+  { area: "Westlands", detail: "Airport runs", level: "High", width: "88%" },
+  { area: "Kilimani", detail: "Lunch rush", level: "Rising", width: "64%" },
+  { area: "CBD", detail: "Office close", level: "Steady", width: "46%" },
+];
+
 function StatusBar() {
   return (
     <div className="status-bar" aria-label="Status bar">
@@ -442,7 +468,7 @@ function RanksScreen() {
   </section>;
 }
 
-function ProfileScreen() {
+function ProfileScreen({ onLoginAsDriver }: { onLoginAsDriver: () => void }) {
   const [bio, setBio] = useState("Moving through Nairobi, one good ride at a time.");
   const [editingBio, setEditingBio] = useState(false);
   const [privateAccount, setPrivateAccount] = useState(false);
@@ -458,7 +484,53 @@ function ProfileScreen() {
     <div className="settings-card"><div className="settings-row"><div className="settings-icon gold"><ShieldCheck size={16} /></div><div className="settings-copy"><strong>Private account</strong><span>Only approved people can see your activity</span></div><button className={`switch${privateAccount ? " on" : ""}`} type="button" role="switch" aria-checked={privateAccount} aria-label="Private account" onClick={() => setPrivateAccount(!privateAccount)}><i /></button></div><div className="settings-divider" /><div className="settings-row language-row"><div className="settings-icon crimson"><Languages size={16} /></div><div className="settings-copy"><strong>Language</strong><span>Choose your preferred Spike language</span></div></div><div className="language-pills">{languages.map((item) => <button key={item} className={language === item ? "active" : ""} type="button" onClick={() => setLanguage(item)}>{item}</button>)}</div><div className="settings-divider" /><button className="settings-row payment-row" type="button"><div className="settings-icon gold"><CreditCard size={16} /></div><div className="settings-copy"><strong>M-Pesa &amp; cards</strong><span>Add or manage payment methods</span></div><ChevronRight size={17} /></button></div>
     <div className="profile-section-heading history-heading"><span>RECENT RIDES</span><button type="button">See all <ArrowRight size={12} /></button></div>
     <div className="history-list">{rideHistory.map((ride) => <div className="history-row" key={`${ride.date}-${ride.driver}`}><div className="history-route-icon"><span /><i /><span /></div><div className="history-route"><strong>{ride.from} <ArrowRight size={11} /> {ride.to}</strong><span>{ride.date} <i /> {ride.driver}</span><small>{ride.vehicle}</small></div><div className="history-price"><strong>{ride.price}</strong><span>paid</span></div></div>)}</div>
+    <button className="driver-login-button" type="button" onClick={onLoginAsDriver}><LogIn size={15} /><span>Log in as driver</span><ArrowRight size={15} /></button>
   </section>;
+}
+
+function DriverTopline({ mode, onModeChange, onLogout }: { mode: DriverMode; onModeChange: (mode: DriverMode) => void; onLogout: () => void }) {
+  return <div className="driver-topline"><div className="driver-brand"><span className="brand-mark">S</span><div><span className="driver-brand-name">spike</span><span className="driver-role-label">{mode === "rider" ? "RIDER APP" : "DRIVER APP"}</span></div></div><div className="driver-top-actions"><button className="driver-mode-toggle" type="button" onClick={() => onModeChange(mode === "rider" ? "driver" : "rider")} aria-label="Switch driver mode"><span className={mode === "rider" ? "active" : ""}>Bike</span><span className={mode === "driver" ? "active" : ""}>Car</span></button><button className="driver-logout" type="button" aria-label="Return to passenger app" onClick={onLogout}><LogIn size={15} /></button></div></div>;
+}
+
+function DriverHome({ mode, onModeChange, onLogout, online, setOnline, activeRide, setActiveRide }: { mode: DriverMode; onModeChange: (mode: DriverMode) => void; onLogout: () => void; online: boolean; setOnline: (value: boolean) => void; activeRide: boolean; setActiveRide: (value: boolean) => void }) {
+  return <section className="driver-screen driver-home-screen" aria-label="Driver dashboard"><DriverTopline mode={mode} onModeChange={onModeChange} onLogout={onLogout} />
+    <div className="driver-greeting"><div><p className="eyebrow gold">{mode === "rider" ? "RIDER / HOME" : "DRIVER / HOME"}</p><h1>Keep the city<br />moving.</h1></div><button className={`online-toggle${online ? " online" : ""}`} type="button" role="switch" aria-checked={online} onClick={() => setOnline(!online)}><span className="online-toggle-dot" /><span>{online ? "Online" : "Offline"}</span></button></div>
+    <div className="driver-earnings-hero"><div className="driver-hero-orb" /><div className="driver-earnings-label"><span>TODAY'S EARNINGS</span><CircleDollarSign size={15} /></div><strong>KSh 4,860</strong><div className="driver-earnings-meta"><span>+18% vs last Tuesday</span><span>7 rides · 9.2 hrs</span></div><div className="driver-hero-line"><i /><i /><i /><i /><i /><i /><i /></div></div>
+    <div className="driver-section-head"><div><span>AI CITY PULSE</span><h2>Where to head next.</h2></div><span className="pulse-live"><span /> LIVE</span></div>
+    <div className="demand-card">{driverDemand.map((item) => <div className="demand-row" key={item.area}><div className="demand-area"><strong>{item.area}</strong><span>{item.detail}</span></div><div className="demand-meter"><i style={{ width: item.width }} /></div><span className={`demand-level ${item.level.toLowerCase()}`}>{item.level}</span><ChevronRight size={14} /></div>)}</div>
+    <div className="driver-section-head bid-head"><div><span>NEARBY NOW</span><h2>Incoming bid</h2></div><button className={`active-ride-control${activeRide ? " engaged" : ""}`} type="button" onClick={() => setActiveRide(!activeRide)}>{activeRide ? <LockKeyhole size={11} /> : <Route size={11} />}{activeRide ? "Trip in progress" : "Test active ride"}</button></div>
+    <div className={`incoming-bid-card${activeRide ? " locked" : ""}`}><div className="bid-card-top"><span className="nearby-dot" /><span>{activeRide ? "BID LOCKED" : "RIDER NEARBY"}</span><small>{activeRide ? "Finish current trip to accept" : "just now"}</small></div><div className="incoming-route"><div className="incoming-route-line"><span /><i /><span /></div><div><strong>Westlands, Woodvale Grove</strong><span>to JKIA · Terminal 1A</span></div></div><div className="incoming-bid-bottom"><div><span>RIDER BID</span><strong>KSh 420</strong><small>Standard KSh 480 · 12% off</small></div><div className="bid-actions"><button className="decline-bid" type="button" disabled={activeRide}>Decline</button><button className="accept-bid" type="button" disabled={activeRide}>{activeRide ? <LockKeyhole size={13} /> : <Check size={13} />} {activeRide ? "Locked" : "Accept"}</button></div></div></div>
+  </section>;
+}
+
+function DriverEarnings({ mode, onModeChange, onLogout }: { mode: DriverMode; onModeChange: (mode: DriverMode) => void; onLogout: () => void }) {
+  const [period, setPeriod] = useState("Today");
+  return <section className="driver-screen driver-earnings-screen" aria-label="Driver earnings"><DriverTopline mode={mode} onModeChange={onModeChange} onLogout={onLogout} /><div className="driver-page-heading"><p className="eyebrow gold">{mode === "rider" ? "RIDER / EARNINGS" : "DRIVER / EARNINGS"}</p><h1>Make it<br />count.</h1><p>Stay close to the numbers that keep you moving.</p></div><div className="period-toggle">{["Today", "This week", "This month"].map((item) => <button key={item} className={period === item ? "active" : ""} type="button" onClick={() => setPeriod(item)}>{item}</button>)}</div><div className="earnings-total-card"><span>{period.toUpperCase()} NET</span><strong>{period === "Today" ? "KSh 4,860" : period === "This week" ? "KSh 28,440" : "KSh 104,260"}</strong><div><span><ArrowUpRightIcon /> 18.4%</span><small>after estimated costs</small></div></div><div className="goal-card"><div className="goal-top"><div><span>RUNNING GOAL</span><strong>2 more rides to hit your KSh 6,000 goal today</strong></div><span className="goal-percent">81%</span></div><div className="goal-track"><i /></div><div className="goal-meta"><span>KSh 4,860 made</span><span>KSh 1,140 to go</span></div></div><div className="driver-section-head cost-heading"><div><span>PROFIT SNAPSHOT</span><h2>Where it goes.</h2></div><span className="margin-pill">40% margin model</span></div><div className="cost-card"><div className="cost-line"><span className="cost-icon fuel"><Zap size={14} /></span><div><strong>Fuel estimate</strong><small>7 rides · 92 km today</small></div><strong className="cost-value">− KSh 1,920</strong></div><div className="cost-divider" /><div className="cost-line"><span className="cost-icon fare"><Banknote size={14} /></span><div><strong>Fare collected</strong><small>Gross rider payments</small></div><strong className="cost-value positive">KSh 4,860</strong></div><div className="cost-footer"><span>EST. TAKE-HOME</span><strong>KSh 2,940</strong></div></div></section>;
+}
+
+function ArrowUpRightIcon() { return <span className="arrow-up-right">↗</span>; }
+
+function DriverSubscription({ mode, onModeChange, onLogout }: { mode: DriverMode; onModeChange: (mode: DriverMode) => void; onLogout: () => void }) {
+  const isRider = mode === "rider";
+  const dailyPrice = isRider ? "$1" : "$3";
+  return <section className="driver-screen driver-subscription-screen" aria-label="Driver subscription"><DriverTopline mode={mode} onModeChange={onModeChange} onLogout={onLogout} /><div className="driver-page-heading"><p className="eyebrow crimson">{isRider ? "RIDER / ACCESS" : "DRIVER / ACCESS"}</p><h1>Keep your<br />wheels on.</h1><p>Stay active, earn freely, and keep every trip connected.</p></div><div className="current-plan-card"><div className="plan-glow" /><div className="plan-chip"><Sparkles size={11} /> CURRENT PLAN</div><div className="plan-title-row"><div><strong>{isRider ? "Rider" : "Driver"}</strong><span>Daily access</span></div><div><b>{dailyPrice}</b><small>/ day</small></div></div><div className="plan-status"><span /><span>Active today</span><span className="plan-renews">Renews at midnight</span></div></div><div className="subscription-section-label">CHOOSE YOUR RHYTHM</div><div className="monthly-plan-card"><div className="monthly-card-top"><div className="monthly-icon"><CalendarIcon /></div><div><strong>Monthly access</strong><span>Built for your full-time grind</span></div><span className="free-days">5 FREE DAYS</span></div><div className="monthly-price"><strong>{isRider ? "$25" : "$75"}</strong><span>/ month</span><button type="button">Choose plan <ArrowRight size={14} /></button></div></div><div className="payment-methods-card"><div className="payment-card-heading"><div><span>PAYMENT METHOD</span><strong>Simple, local, secure.</strong></div><ShieldCheck size={17} /></div><div className="payment-logos"><span className="mpesa-logo">M-PESA</span><span className="card-logo mastercard">●●</span><span className="card-logo visa">VISA</span></div><p>Pay with M-Pesa, Mastercard, or Visa. Change your method anytime.</p></div><div className="subscription-footnote"><LockKeyhole size={13} /> Payments are encrypted and protected by Spike.</div></section>;
+}
+
+function CalendarIcon() { return <span className="calendar-icon"><i /><b /></span>; }
+
+function DriverProfile({ mode, onModeChange, onLogout }: { mode: DriverMode; onModeChange: (mode: DriverMode) => void; onLogout: () => void }) {
+  const [privateProfile, setPrivateProfile] = useState(false);
+  return <section className="driver-screen driver-profile-screen" aria-label="Driver profile"><DriverTopline mode={mode} onModeChange={onModeChange} onLogout={onLogout} /><div className="driver-profile-header"><div><p className="eyebrow crimson">{mode === "rider" ? "RIDER / PROFILE" : "DRIVER / PROFILE"}</p><h1>Your work,<br />your story.</h1></div><div className="driver-warning"><span><span /> 1 of 2</span><small>warnings</small></div></div><div className="driver-profile-identity"><div className="driver-profile-avatar">JM<i /></div><div><h2>James Mutua</h2><div><Star size={13} fill="currentColor" /> <strong>4.92</strong><span>· 1,106 trips</span></div></div><span className="verified-driver"><ShieldCheck size={12} /> VERIFIED</span></div><p className="driver-bio">{mode === "rider" ? "Your reliable two-wheel shortcut through Nairobi." : "Making Nairobi moves smoother, one ride at a time."}</p><div className="driver-photo-strip"><div className="driver-photo photo-one"><span>JM</span></div><div className="driver-photo photo-two"><Bike size={19} /></div><div className="driver-photo photo-three"><CarFront size={19} /></div><button className="add-photo" type="button">+<small>Add photo</small></button></div><div className="driver-profile-section-label">SOCIAL PROFILE</div><div className="driver-social-card"><div className="driver-social-row"><div><strong>Bio visibility</strong><span>Let riders get to know you</span></div><button className={`switch${privateProfile ? " on" : ""}`} type="button" role="switch" aria-checked={privateProfile} onClick={() => setPrivateProfile(!privateProfile)}><i /></button></div><div className="driver-social-divider" /><div className="driver-social-row"><div><strong>Private profile</strong><span>{privateProfile ? "Only matched riders can see your profile" : "Your profile is visible to riders"}</span></div><LockKeyhole size={15} /></div></div><button className="driver-logout-button" type="button" onClick={onLogout}><LogIn size={14} /> Return to passenger app</button></section>;
+}
+
+function DriverShell({ onLogout }: { onLogout: () => void }) {
+  const [activeTab, setActiveTab] = useState<DriverTabId>("home");
+  const [mode, setMode] = useState<DriverMode>("rider");
+  const [online, setOnline] = useState(true);
+  const [activeRide, setActiveRide] = useState(false);
+  const driverTabs: { id: DriverTabId; label: string; icon: typeof Radio }[] = [{ id: "home", label: "Home", icon: Radio }, { id: "earnings", label: "Earnings", icon: WalletCards }, { id: "subscription", label: "Access", icon: Crown }, { id: "driverProfile", label: "Profile", icon: UserRound }];
+  const changeMode = (nextMode: DriverMode) => setMode(nextMode);
+  return <div className="driver-app"><div className="driver-app-content">{activeTab === "home" ? <DriverHome mode={mode} onModeChange={changeMode} onLogout={onLogout} online={online} setOnline={setOnline} activeRide={activeRide} setActiveRide={setActiveRide} /> : activeTab === "earnings" ? <DriverEarnings mode={mode} onModeChange={changeMode} onLogout={onLogout} /> : activeTab === "subscription" ? <DriverSubscription mode={mode} onModeChange={changeMode} onLogout={onLogout} /> : <DriverProfile mode={mode} onModeChange={changeMode} onLogout={onLogout} />}</div><nav className="driver-bottom-nav" aria-label="Driver navigation">{driverTabs.map((tab) => { const Icon = tab.icon; return <button key={tab.id} className={activeTab === tab.id ? "active" : ""} type="button" onClick={() => setActiveTab(tab.id)}><span><Icon size={19} /></span><small>{tab.label}</small></button>; })}</nav></div>;
 }
 
 function PlaceholderScreen({ tab }: { tab: Tab }) {
@@ -477,6 +549,7 @@ function Mascot() {
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("ride");
+  const [role, setRole] = useState<DriverRole>("passenger");
   const activeScreen = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
-  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen /> : <PlaceholderScreen tab={activeScreen} />}</div><Mascot /><BottomNav activeTab={activeTab} onChange={setActiveTab} /><div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
+  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{role === "driver" ? <DriverShell onLogout={() => setRole("passenger")} /> : activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen onLoginAsDriver={() => setRole("driver")} /> : <PlaceholderScreen tab={activeScreen} />}</div>{role === "passenger" && <Mascot />}{role === "passenger" ? <BottomNav activeTab={activeTab} onChange={setActiveTab} /> : null}<div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
 }
