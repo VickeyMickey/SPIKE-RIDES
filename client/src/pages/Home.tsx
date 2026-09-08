@@ -18,12 +18,15 @@ import {
   Languages,
   LockKeyhole,
   LoaderCircle,
+  LocateFixed,
   LogIn,
   MapPin,
+  MapPinned,
   MessageCircle,
   MessageSquare,
   Navigation,
   Pencil,
+  Gift,
   Phone,
   Power,
   Radio,
@@ -34,6 +37,7 @@ import {
   Share2,
   Sparkles,
   Star,
+  Wallet,
   Target,
   Trophy,
   UserRound,
@@ -52,6 +56,7 @@ type RankView = "riders" | "hunters";
 type DriverTabId = "home" | "earnings" | "subscription" | "driverProfile";
 type DriverRole = "passenger" | "driver";
 type DriverMode = "rider" | "driver";
+type MascotView = "map" | "capture" | "wallet";
 
 type Tab = {
   id: TabId;
@@ -112,6 +117,15 @@ type DriverDemand = {
   detail: string;
   level: string;
   width: string;
+};
+
+type MascotCatch = {
+  id: string;
+  name: string;
+  reward: number;
+  date: string;
+  location: string;
+  tone: string;
 };
 
 const tabs: Tab[] = [
@@ -294,6 +308,13 @@ const driverDemand: DriverDemand[] = [
   { area: "CBD", detail: "Office close", level: "Steady", width: "46%" },
 ];
 
+const initialMascotCatches: MascotCatch[] = [
+  { id: "fox-01", name: "Glow Fox", reward: 200, date: "08 Sep 2026", location: "Kilimani", tone: "amber" },
+  { id: "fox-02", name: "Night Fox", reward: 100, date: "06 Sep 2026", location: "Westlands", tone: "crimson" },
+  { id: "fox-03", name: "Mau Fox", reward: 300, date: "31 Aug 2026", location: "Karura", tone: "green" },
+  { id: "fox-04", name: "City Fox", reward: 50, date: "29 Aug 2026", location: "CBD", tone: "violet" },
+];
+
 function StatusBar() {
   return (
     <div className="status-bar" aria-label="Status bar">
@@ -420,14 +441,44 @@ function DiscoverVisual({ visual }: { visual: string }) {
   return <div className={`discover-visual visual-${visual}`} aria-hidden="true"><div className="visual-noise" /><div className="visual-sun" /><div className="visual-orb orb-one" /><div className="visual-orb orb-two" /><div className="visual-silhouette" /><div className="visual-spark spark-one">✦</div><div className="visual-spark spark-two">✦</div><span className="visual-code">SPIKE / CITY FEED</span></div>;
 }
 
-function DiscoverPost({ post, liked, onToggleLike }: { post: DiscoverPost; liked: boolean; onToggleLike: () => void }) {
-  return <article className={`discover-post post-${post.visual}`}><DiscoverVisual visual={post.visual} /><div className="discover-vignette" /><div className="discover-post-top"><span className={`discover-category ${post.accent}`}>{post.category === "Mascot Hunt" && <Sparkles size={11} />}{post.category}</span><span className="discover-post-index">{String(discoverPosts.findIndex((item) => item.id === post.id) + 1).padStart(2, "0")} / 05</span></div><div className="discover-side-rail"><button className={`discover-action${liked ? " liked" : ""}`} type="button" aria-label={liked ? "Unlike post" : "Like post"} onClick={onToggleLike}><Heart size={25} fill={liked ? "currentColor" : "none"} /><span>{liked ? "Liked" : post.likes}</span></button><button className="discover-action" type="button" aria-label={`Comment on ${post.username}`}><MessageSquare size={24} /><span>{post.comments}</span></button><button className="discover-action" type="button" aria-label={`Share ${post.username}'s post`}><Share2 size={23} /><span>{post.shares}</span></button>{post.category === "Mascot Hunt" && <button className="discover-mascot-action" type="button" aria-label="Open mascot hunt"><span>🦊</span></button>}</div><div className="discover-post-copy"><div className="discover-user-row"><span className="discover-avatar">{post.initials}</span><strong>{post.username}</strong><span className="discover-follow">Follow</span></div><p>{post.caption}</p><span className="discover-location"><MapPin size={11} /> {post.location}</span></div><div className="discover-swipe-cue"><span>swipe for more</span><ChevronDown size={15} /></div></article>;
+function DiscoverPost({ post, liked, onToggleLike, onOpenMascotHunt }: { post: DiscoverPost; liked: boolean; onToggleLike: () => void; onOpenMascotHunt: () => void }) {
+  return <article className={`discover-post post-${post.visual}`}><DiscoverVisual visual={post.visual} /><div className="discover-vignette" /><div className="discover-post-top"><span className={`discover-category ${post.accent}`}>{post.category === "Mascot Hunt" && <Sparkles size={11} />}{post.category}</span><span className="discover-post-index">{String(discoverPosts.findIndex((item) => item.id === post.id) + 1).padStart(2, "0")} / 05</span></div><div className="discover-side-rail"><button className={`discover-action${liked ? " liked" : ""}`} type="button" aria-label={liked ? "Unlike post" : "Like post"} onClick={onToggleLike}><Heart size={25} fill={liked ? "currentColor" : "none"} /><span>{liked ? "Liked" : post.likes}</span></button><button className="discover-action" type="button" aria-label={`Comment on ${post.username}`}><MessageSquare size={24} /><span>{post.comments}</span></button><button className="discover-action" type="button" aria-label={`Share ${post.username}'s post`}><Share2 size={23} /><span>{post.shares}</span></button>{post.category === "Mascot Hunt" && <button className="discover-mascot-action" type="button" aria-label="Open mascot hunt" onClick={onOpenMascotHunt}><span>🦊</span></button>}</div><div className="discover-post-copy"><div className="discover-user-row"><span className="discover-avatar">{post.initials}</span><strong>{post.username}</strong><span className="discover-follow">Follow</span></div><p>{post.caption}</p><span className="discover-location"><MapPin size={11} /> {post.location}</span></div><div className="discover-swipe-cue"><span>swipe for more</span><ChevronDown size={15} /></div></article>;
 }
 
-function DiscoverFeed() {
+function DiscoverFeed({ onOpenMascotHunt }: { onOpenMascotHunt: () => void }) {
   const [likedPosts, setLikedPosts] = useState<string[]>([]);
   const toggleLike = (id: string) => setLikedPosts((current) => current.includes(id) ? current.filter((postId) => postId !== id) : [...current, id]);
-  return <section className="discover-screen" aria-label="Discover feed"><div className="discover-feed">{discoverPosts.map((post) => <DiscoverPost key={post.id} post={post} liked={likedPosts.includes(post.id)} onToggleLike={() => toggleLike(post.id)} />)}</div></section>;
+  return <section className="discover-screen" aria-label="Discover feed"><div className="discover-feed">{discoverPosts.map((post) => <DiscoverPost key={post.id} post={post} liked={likedPosts.includes(post.id)} onToggleLike={() => toggleLike(post.id)} onOpenMascotHunt={onOpenMascotHunt} />)}</div></section>;
+}
+
+function HuntHeader({ view, setView, onExit }: { view: MascotView; setView: (view: MascotView) => void; onExit: () => void }) {
+  return <div className="hunt-header"><button className="hunt-back" type="button" aria-label="Back to Discover" onClick={onExit}><ArrowLeft size={18} /></button><div><span className="hunt-brand"><span>🦊</span> SPIKE HUNT</span><small>Find the city’s hidden energy.</small></div><button className="hunt-wallet-button" type="button" aria-label="Open mascot wallet" onClick={() => setView("wallet")}><Wallet size={17} /><b>{initialMascotCatches.length}</b></button></div>;
+}
+
+function HuntMap({ onCapture }: { onCapture: () => void }) {
+  return <div className="hunt-map"><div className="hunt-map-grid" /><div className="hunt-map-road hunt-road-one" /><div className="hunt-map-road hunt-road-two" /><div className="hunt-map-road hunt-road-three" /><div className="hunt-map-zone zone-one" /><div className="hunt-map-zone zone-two" /><span className="hunt-map-label hunt-label-westlands">WESTLANDS</span><span className="hunt-map-label hunt-label-kilimani">KILIMANI</span><span className="hunt-map-label hunt-label-karura">KARURA</span><div className="hunt-pin pin-one" onClick={onCapture}><span>🦊</span><i /></div><div className="hunt-pin pin-two" onClick={onCapture}><span>🦊</span><i /></div><div className="hunt-pin pin-three" onClick={onCapture}><span>🦊</span><i /></div><div className="hunt-user-position"><LocateFixed size={16} /><span>You</span></div><div className="hunt-map-topline"><span><span className="hunt-live-dot" /> 7 mascots nearby</span><span>2.4 km radius</span></div><div className="hunt-map-hint"><Sparkles size={14} /><span>Gold glow means a fresh drop</span></div><button className="nearby-mascot-card" type="button" onClick={onCapture}><span className="nearby-mascot-art">🦊</span><div><b>One is close.</b><small>Tap to check your radius</small></div><ChevronRight size={16} /></button></div>;
+}
+
+function CaptureScreen({ reward, onClaim }: { reward: number; onClaim: () => void }) {
+  return <section className="capture-screen" aria-label="Mascot captured"><div className="capture-background"><div className="capture-grid" /><div className="capture-orbit capture-orbit-one" /><div className="capture-orbit capture-orbit-two" /><div className="capture-burst burst-one" /><div className="capture-burst burst-two" /></div><div className="capture-topline"><span><Sparkles size={13} /> MASCOT FOUND</span><span>NEAR KILIMANI</span></div><div className="capture-reveal"><div className="capture-ring ring-a" /><div className="capture-ring ring-b" /><div className="capture-mascot">🦊</div><span className="capture-star star-a">✦</span><span className="capture-star star-b">✦</span><span className="capture-star star-c">✦</span></div><p className="capture-eyebrow">YOU CAUGHT A</p><h1>Glow Fox.</h1><p className="capture-copy">Quick hands. Good timing. This little one was waiting for you.</p><div className="capture-reward"><span>CASH REWARD</span><strong>KSh {reward}</strong><small>Added to your Spike wallet when claimed</small></div><button className="claim-button" type="button" onClick={onClaim}><Gift size={17} /><span>Claim reward</span><ArrowRight size={17} /></button><div className="capture-footnote"><MapPinned size={13} /> Kilimani · 08 Sep 2026 · 14:32</div></section>;
+}
+
+function MascotCard({ mascot }: { mascot: MascotCatch }) {
+  return <div className="mascot-wallet-card"><div className={`wallet-mascot-art ${mascot.tone}`}><span>🦊</span><i>✦</i></div><div className="wallet-card-copy"><strong>{mascot.name}</strong><span><MapPin size={10} /> {mascot.location}</span><small>{mascot.date}</small></div><b className="wallet-reward">KSh {mascot.reward}</b></div>;
+}
+
+function MascotWallet({ catches, setView }: { catches: MascotCatch[]; setView: (view: MascotView) => void }) {
+  const total = catches.reduce((sum, mascot) => sum + mascot.reward, 0);
+  return <section className="mascot-wallet-screen" aria-label="My mascots wallet"><div className="wallet-title-row"><div><p className="eyebrow gold">SPIKE / WALLET</p><h1>My mascots.</h1><p>Every find has a story. Every story pays.</p></div><div className="wallet-total"><Wallet size={17} /><strong>KSh {total.toLocaleString()}</strong><span>total rewards</span></div></div><div className="wallet-tabs"><button className="active" type="button">Caught <b>{catches.length}</b></button><button type="button" onClick={() => setView("map")}>Find more <MapPin size={13} /></button></div><div className="mascot-wallet-grid">{catches.map((mascot) => <MascotCard key={mascot.id} mascot={mascot} />)}</div><button className="wallet-find-button" type="button" onClick={() => setView("map")}><Sparkles size={15} /><span>Find another mascot</span><ArrowRight size={15} /></button></section>;
+}
+
+function MascotHuntScreen({ onExit }: { onExit: () => void }) {
+  const [view, setView] = useState<MascotView>("map");
+  const [catches, setCatches] = useState<MascotCatch[]>(initialMascotCatches);
+  const [reward, setReward] = useState(200);
+  const openCapture = () => { setReward(Math.floor(Math.random() * 6) * 50 + 50); setView("capture"); };
+  const claimReward = () => { setCatches((current) => [{ id: `fox-${Date.now()}`, name: "Glow Fox", reward, date: "08 Sep 2026", location: "Kilimani", tone: "amber" }, ...current]); setView("wallet"); };
+  return <section className={`mascot-hunt-screen hunt-${view}`} aria-label="Spike Mascot Hunt"><HuntHeader view={view} setView={setView} onExit={onExit} />{view === "map" && <><div className="hunt-title"><p className="eyebrow gold">CITYWIDE SCAVENGER RUN</p><h1>Find your<br />next fox.</h1><p>Hidden around Nairobi. Worth KSh 50–300.</p></div><HuntMap onCapture={openCapture} /><div className="hunt-bottom-stats"><div><strong>07</strong><span>nearby drops</span></div><i /><div><strong>12</strong><span>you've caught</span></div><i /><div><strong>KSh 2.4K</strong><span>earned so far</span></div></div><button className="hunt-wallet-cta" type="button" onClick={() => setView("wallet")}><Wallet size={15} /><span>Open my mascot wallet</span><ArrowRight size={15} /></button></>}{view === "capture" && <CaptureScreen reward={reward} onClaim={claimReward} />}{view === "wallet" && <MascotWallet catches={catches} setView={setView} />}</section>;
 }
 
 function RankPodium({ entries, view }: { entries: RankEntry[]; view: RankView }) {
@@ -550,6 +601,7 @@ function Mascot() {
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("ride");
   const [role, setRole] = useState<DriverRole>("passenger");
+  const [mascotHunt, setMascotHunt] = useState(false);
   const activeScreen = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
-  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{role === "driver" ? <DriverShell onLogout={() => setRole("passenger")} /> : activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen onLoginAsDriver={() => setRole("driver")} /> : <PlaceholderScreen tab={activeScreen} />}</div>{role === "passenger" && <Mascot />}{role === "passenger" ? <BottomNav activeTab={activeTab} onChange={setActiveTab} /> : null}<div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
+  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{role === "driver" ? <DriverShell onLogout={() => setRole("passenger")} /> : mascotHunt ? <MascotHuntScreen onExit={() => setMascotHunt(false)} /> : activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed onOpenMascotHunt={() => setMascotHunt(true)} /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen onLoginAsDriver={() => setRole("driver")} /> : <PlaceholderScreen tab={activeScreen} />}</div>{role === "passenger" && !mascotHunt && <Mascot />}{role === "passenger" && !mascotHunt ? <BottomNav activeTab={activeTab} onChange={setActiveTab} /> : null}<div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
 }
