@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -55,6 +55,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { MapView } from "@/components/Map";
 
 type TabId = "ride" | "discover" | "ranks" | "profile";
 type RideStep = "pick" | "bid" | "matching" | "matched";
@@ -465,11 +466,67 @@ function MatchedScreen({ vehicle, onReset }: { vehicle: Vehicle; onReset: () => 
   return <section className="ride-screen matched-screen" aria-labelledby="matched-title"><ScreenTopline /><div className="step-progress" aria-label="Booking step 4 of 4"><span /><span /><span /><span className="active" /></div><div className="matched-status"><span className="matched-check"><Check size={15} strokeWidth={3} /></span><span>MATCH CONFIRMED</span><span className="match-time">now</span></div><h1 id="matched-title">Your rider is<br />on the way.</h1><div className="driver-card"><div className="driver-card-top"><div className="driver-avatar">AM</div><div className="driver-identity"><strong>Alex Mwangi</strong><span><Star size={13} fill="currentColor" /> 4.96 <i /> 1,248 trips</span></div><span className="driver-online"><span /> online</span></div><div className="vehicle-detail-row"><div className="detail-pair"><span>PLATE</span><strong>KDA 482M</strong></div><div className="detail-pair"><span>VEHICLE</span><strong>Toyota Fielder</strong></div><div className="detail-pair"><span>COLOUR</span><strong>Midnight black</strong></div></div><div className="driver-arrival"><div><span>ARRIVES IN</span><strong>4 min</strong></div><div className="arrival-line"><span /><i /><span /></div><div className="arrival-pin"><Navigation size={15} fill="currentColor" /></div></div></div><div className="matched-actions"><button type="button"><Phone size={18} /><span>Call</span></button><button type="button"><MessageCircle size={18} /><span>WhatsApp</span></button><button className={favorite ? "is-favorite" : ""} type="button" onClick={() => setFavorite(!favorite)}><Heart size={18} fill={favorite ? "currentColor" : "none"} /><span>{favorite ? "Saved" : "Favorite"}</span></button></div><div className="safety-note"><ShieldCheck size={15} /><span>Your trip is protected by Spike Safety.</span><ChevronRight size={14} /></div><button className="cancel-request" type="button" onClick={onReset}><RotateCcw size={14} /> Cancel / new request</button></section>;
 }
 
-function RideFlow() {
+function QrCode({ value }: { value: string }) {
+  const cells = Array.from({ length: 441 }, (_, index) => {
+    const x = index % 21;
+    const y = Math.floor(index / 21);
+    const finder = (ox: number, oy: number) => x >= ox && x < ox + 7 && y >= oy && y < oy + 7;
+    const inFinder = finder(0, 0) || finder(14, 0) || finder(0, 14);
+    const finderPixel = (ox: number, oy: number) => { const dx = x - ox; const dy = y - oy; return dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4); };
+    let hash = 0; for (let i = 0; i < value.length; i += 1) hash = (hash * 31 + value.charCodeAt(i) + index) >>> 0;
+    return inFinder ? finderPixel(x < 7 ? 0 : x > 13 ? 14 : 0, y < 7 ? 0 : y > 13 ? 14 : 0) : hash % 5 < 2;
+  });
+  return <div className="qr-code" aria-label="Payment QR code">{cells.map((filled, index) => <i className={filled ? "filled" : ""} key={index} />)}</div>;
+}
+
+function LiveRideMap() {
+  const markerRef = useRef<google.maps.Marker | null>(null);
+  const currentPosition = useRef({ lat: -1.2865, lng: 36.8172 });
+  const [mapReady, setMapReady] = useState(false);
+  useEffect(() => {
+    if (!mapReady || !markerRef.current) return undefined;
+    const timer = window.setInterval(() => {
+      currentPosition.current = { lat: currentPosition.current.lat + 0.00028, lng: currentPosition.current.lng + 0.00022 };
+      markerRef.current?.setPosition(currentPosition.current);
+    }, 3500);
+    return () => window.clearInterval(timer);
+  }, [mapReady]);
+  return <div className="live-map-wrap"><MapView className="live-google-map" initialCenter={{ lat: -1.2865, lng: 36.8172 }} initialZoom={13} onMapReady={(map) => {
+    const destination = { lat: -1.3197, lng: 36.9275 };
+    const route = new google.maps.DirectionsService();
+    const renderer = new google.maps.DirectionsRenderer({ map, suppressMarkers: true, polylineOptions: { strokeColor: "#F2B705", strokeOpacity: 0.92, strokeWeight: 5 } });
+    route.route({ origin: currentPosition.current, destination, travelMode: google.maps.TravelMode.DRIVING }, (result, status) => { if (status === "OK" && result) renderer.setDirections(result); else new google.maps.Polyline({ map, path: [currentPosition.current, destination], strokeColor: "#F2B705", strokeOpacity: 0.9, strokeWeight: 5 }); });
+    markerRef.current = new google.maps.Marker({ map, position: currentPosition.current, title: "Alex is here", icon: { path: google.maps.SymbolPath.CIRCLE, scale: 10, fillColor: "#D0203C", fillOpacity: 1, strokeColor: "#F5F1E8", strokeWeight: 3 } });
+    new google.maps.Marker({ map, position: destination, title: "JKIA Terminal 1A", icon: { path: google.maps.SymbolPath.BACKWARD_CLOSED_ARROW, scale: 7, fillColor: "#F2B705", fillOpacity: 1, strokeColor: "#0A0A0C", strokeWeight: 2 } });
+    setMapReady(true);
+  }} /><div className="map-live-chip"><span /> LIVE TRACKING</div><div className="map-destination-chip"><MapPin size={12} /> JKIA · Terminal 1A</div></div>;
+}
+
+function PaymentSheet({ amount, onClose }: { amount: string; onClose: () => void }) {
+  const [method, setMethod] = useState<"mpesa" | "qr">("mpesa");
+  const [paid, setPaid] = useState(false);
+  if (paid) return <div className="payment-screen"><div className="payment-confirmation"><span className="payment-check"><Check size={28} strokeWidth={3} /></span><p className="eyebrow gold">PAYMENT COMPLETE</p><h1>You’re all<br />settled.</h1><strong>{amount}</strong><span className="payment-time">Paid via {method === "mpesa" ? "M-Pesa Paybill" : "Spike QR"} · 08 Sep 2026, 14:42</span><button className="primary-action" type="button" onClick={onClose}><span>Back to current ride</span><ArrowRight size={18} /></button></div></div>;
+  return <div className="payment-screen"><div className="payment-heading"><button className="icon-button back-button" type="button" aria-label="Close payment" onClick={onClose}><ArrowLeft size={18} /></button><div><p className="eyebrow gold">SPIKE / PAYMENT</p><h1>Pay Alex.</h1><p>Confirm the right rider, then settle securely.</p></div></div><div className="payment-driver-mini"><div className="driver-avatar">AM</div><div><strong>Alex Mwangi</strong><span>KDA 482M · Toyota Fielder</span></div><strong>{amount}</strong></div><div className="payment-tabs"><button className={method === "mpesa" ? "active" : ""} type="button" onClick={() => setMethod("mpesa")}><Banknote size={15} /> M-Pesa Paybill</button><button className={method === "qr" ? "active" : ""} type="button" onClick={() => setMethod("qr")}><QrIcon /> Scan QR</button></div>{method === "mpesa" ? <div className="mpesa-payment-card"><span className="mpesa-label">M-PESA PAYBILL</span><div className="paybill-row"><div><small>SPIKE PAYBILL</small><strong>404040</strong></div><button type="button">Copy</button></div><div className="paybill-row"><div><small>YOUR ACCOUNT NUMBER</small><strong>SPK-AN-482</strong></div><button type="button">Copy</button></div><p>Go to M-Pesa <ArrowRight size={11} /> Lipa na M-Pesa <ArrowRight size={11} /> Paybill, enter these details.</p></div> : <div className="qr-payment-card"><QrCode value="spike:pay:SPK-AN-482:KSh480:AlexMwangi" /><div><span className="mpesa-label">SCAN TO PAY ALEX</span><h2>Alex Mwangi</h2><p>Verify the name and plate before paying.</p><span className="qr-account">SPK-AN-482</span></div></div>}<button className="pay-now-button" type="button" onClick={() => setPaid(true)}><Check size={16} /><span>Confirm payment · {amount}</span><ArrowRight size={16} /></button><div className="secure-payment-note"><ShieldCheck size={13} /> Secured by Spike payments</div></div>;
+}
+
+function QrIcon() { return <span className="qr-icon"><i /><i /><i /><i /></span>; }
+
+function CurrentRideScreen({ onClose }: { onClose: () => void }) {
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [delivery, setDelivery] = useState(false);
+  const [eta, setEta] = useState(4);
+  useEffect(() => { const timer = window.setInterval(() => setEta((current) => current > 1 ? current - 1 : 4), 7000); return () => window.clearInterval(timer); }, []);
+  if (paymentOpen) return <PaymentSheet amount="KSh 480" onClose={() => setPaymentOpen(false)} />;
+  return <section className="current-ride-screen" aria-label="Current ride"><div className="current-ride-header"><button className="current-ride-close" type="button" aria-label="Close current ride" onClick={onClose}><ArrowLeft size={17} /></button><div><p className="eyebrow gold">SPIKE / ACTIVE NOW</p><h1>{delivery ? "Your delivery" : "Your ride"} is moving.</h1></div><button className="pay-header-button" type="button" onClick={() => setPaymentOpen(true)}><WalletCards size={14} /> Pay</button></div><div className="trip-kind-toggle"><button className={!delivery ? "active" : ""} type="button" onClick={() => setDelivery(false)}><CarFront size={13} /> Ride</button><button className={delivery ? "active" : ""} type="button" onClick={() => setDelivery(true)}><PackageIcon /> Delivery</button></div>{delivery && <div className="delivery-stepper"><div className="done"><span><Check size={11} /></span><small>Order placed</small></div><i /><div className="done"><span><Check size={11} /></span><small>Picked up</small></div><i /><div className="active"><span>3</span><small>On the way</small></div><i /><div><span>4</span><small>Delivered</small></div></div>}<div className="current-trip-summary"><div><span>ARRIVING IN</span><strong>{eta} min</strong></div><i /><div><span>DISTANCE LEFT</span><strong>6.8 km</strong></div><i /><div><span>DROP-OFF</span><strong>JKIA</strong></div></div><LiveRideMap /><div className="current-driver-card"><div className="current-driver-top"><div className="driver-avatar">AM</div><div className="driver-identity"><strong>Alex Mwangi</strong><span><Star size={13} fill="currentColor" /> 4.96 <i /> 1,248 trips</span></div><span className="driver-online"><span /> on trip</span></div><div className="current-vehicle-row"><span><b>PLATE</b>KDA 482M</span><span><b>VEHICLE</b>Toyota Fielder</span><span><b>COLOUR</b>Midnight black</span></div><div className="current-actions"><button type="button"><Phone size={16} /><span>Call</span></button><button type="button"><MessageCircle size={16} /><span>WhatsApp</span></button><button type="button" onClick={() => setPaymentOpen(true)}><WalletCards size={16} /><span>Pay</span></button></div></div><div className="current-safety"><ShieldCheck size={14} /><span>{delivery ? "Your parcel is protected by Spike delivery." : "Your trip is protected by Spike Safety."}</span></div></section>;
+}
+
+function PackageIcon() { return <span className="package-icon">□</span>; }
+
+function RideFlow({ onActiveRide }: { onActiveRide: () => void }) {
   const [step, setStep] = useState<RideStep>("pick");
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [bidPercent, setBidPercent] = useState(12);
-  useEffect(() => { if (step !== "matching") return undefined; const timeout = window.setTimeout(() => setStep("matched"), 3_200); return () => window.clearTimeout(timeout); }, [step]);
+  useEffect(() => { if (step !== "matching") return undefined; const timeout = window.setTimeout(() => { setStep("matched"); onActiveRide(); }, 3_200); return () => window.clearTimeout(timeout); }, [onActiveRide, step]);
   const resetRide = () => { setSelectedVehicle(null); setBidPercent(12); setStep("pick"); };
   if (step === "bid" && selectedVehicle) return <BidScreen vehicle={selectedVehicle} bidPercent={bidPercent} onBidChange={setBidPercent} onBack={() => setStep("pick")} onSendBid={() => setStep("matching")} />;
   if (step === "matching" && selectedVehicle) return <MatchingScreen vehicle={selectedVehicle} bidPercent={bidPercent} />;
@@ -675,6 +732,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("ride");
   const [role, setRole] = useState<DriverRole>("passenger");
   const [mascotHunt, setMascotHunt] = useState(false);
+  const [activeRide, setActiveRide] = useState(false);
+  const [currentRideOpen, setCurrentRideOpen] = useState(false);
   const activeScreen = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
-  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{role === "driver" ? <DriverShell onLogout={() => setRole("passenger")} /> : role === "business" ? <BusinessShell onExit={() => setRole("passenger")} /> : mascotHunt ? <MascotHuntScreen onExit={() => setMascotHunt(false)} /> : activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed onOpenMascotHunt={() => setMascotHunt(true)} /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen onLoginAsDriver={() => setRole("driver")} onOpenBusiness={() => setRole("business")} /> : <PlaceholderScreen tab={activeScreen} />}</div>{role === "passenger" && !mascotHunt && <Mascot />}{role === "passenger" && !mascotHunt ? <BottomNav activeTab={activeTab} onChange={setActiveTab} /> : null}<div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
+  const passengerView = currentRideOpen ? <CurrentRideScreen onClose={() => setCurrentRideOpen(false)} /> : mascotHunt ? <MascotHuntScreen onExit={() => setMascotHunt(false)} /> : activeTab === "ride" ? <RideFlow onActiveRide={() => setActiveRide(true)} /> : activeTab === "discover" ? <DiscoverFeed onOpenMascotHunt={() => setMascotHunt(true)} /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen onLoginAsDriver={() => setRole("driver")} onOpenBusiness={() => setRole("business")} /> : <PlaceholderScreen tab={activeScreen} />;
+  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{role === "driver" ? <DriverShell onLogout={() => setRole("passenger")} /> : role === "business" ? <BusinessShell onExit={() => setRole("passenger")} /> : passengerView}</div>{role === "passenger" && !mascotHunt && !currentRideOpen && <Mascot />}{role === "passenger" && !mascotHunt && !currentRideOpen && <BottomNav activeTab={activeTab} onChange={setActiveTab} />}{role === "passenger" && activeRide && !currentRideOpen && !mascotHunt && <button className="active-ride-banner" type="button" onClick={() => setCurrentRideOpen(true)}><span className="active-ride-pulse"><span /></span><span><b>Alex is on the way</b><small>JKIA · {activeTab === "ride" ? "4 min away" : "Open current ride"}</small></span><strong>View ride <ArrowRight size={14} /></strong></button>}<div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
 }

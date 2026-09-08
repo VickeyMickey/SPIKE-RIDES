@@ -92,6 +92,22 @@ const FORGE_BASE_URL =
   "https://forge.butterfly-effect.dev";
 const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
 
+const SPIKE_MAP_STYLES: google.maps.MapTypeStyle[] = [
+  { elementType: "geometry", stylers: [{ color: "#1a211f" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#9b9b96" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#1a211f" }] },
+  { featureType: "administrative", elementType: "geometry.stroke", stylers: [{ color: "#3a403b" }] },
+  { featureType: "landscape.natural", elementType: "geometry", stylers: [{ color: "#1d2923" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#202c25" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#6f947b" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#303a34" }] },
+  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#202722" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#4b4b39" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#27322c" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#0e2528" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#52777a" }] },
+];
+
 function loadMapScript() {
   return new Promise(resolve => {
     const script = document.createElement("script");
@@ -139,6 +155,8 @@ export function MapView({
       zoomControl: true,
       streetViewControl: true,
       mapId: "DEMO_MAP_ID",
+      styles: SPIKE_MAP_STYLES,
+      backgroundColor: "#1a211f",
     });
     if (onMapReady) {
       onMapReady(map.current);
