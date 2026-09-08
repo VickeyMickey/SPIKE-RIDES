@@ -7,6 +7,7 @@ import {
   BriefcaseBusiness,
   CarFront,
   Check,
+  ChefHat,
   ChevronDown,
   ChevronRight,
   CircleUserRound,
@@ -14,6 +15,9 @@ import {
   Crown,
   CreditCard,
   CircleDollarSign,
+  CircleCheck,
+  ClipboardList,
+  Clock3,
   Heart,
   Languages,
   LockKeyhole,
@@ -34,9 +38,13 @@ import {
   RotateCcw,
   Send,
   ShieldCheck,
+  ShoppingBag,
   Share2,
   Sparkles,
   Star,
+  Store,
+  Timer,
+  Truck,
   Wallet,
   Target,
   Trophy,
@@ -54,9 +62,10 @@ type Accent = "gold" | "crimson";
 type DiscoverCategory = "Mascot Hunt" | "Driver Life" | "Business";
 type RankView = "riders" | "hunters";
 type DriverTabId = "home" | "earnings" | "subscription" | "driverProfile";
-type DriverRole = "passenger" | "driver";
+type DriverRole = "passenger" | "driver" | "business";
 type DriverMode = "rider" | "driver";
 type MascotView = "map" | "capture" | "wallet";
+type BusinessTabId = "storefront" | "orders";
 
 type Tab = {
   id: TabId;
@@ -126,6 +135,23 @@ type MascotCatch = {
   date: string;
   location: string;
   tone: string;
+};
+
+type BusinessProduct = {
+  name: string;
+  description: string;
+  price: string;
+  tag: string;
+  tone: string;
+};
+
+type BusinessOrder = {
+  id: string;
+  customer: string;
+  item: string;
+  amount: string;
+  time: string;
+  status: "new" | "preparing" | "out for delivery" | "delivered";
 };
 
 const tabs: Tab[] = [
@@ -313,6 +339,20 @@ const initialMascotCatches: MascotCatch[] = [
   { id: "fox-02", name: "Night Fox", reward: 100, date: "06 Sep 2026", location: "Westlands", tone: "crimson" },
   { id: "fox-03", name: "Mau Fox", reward: 300, date: "31 Aug 2026", location: "Karura", tone: "green" },
   { id: "fox-04", name: "City Fox", reward: 50, date: "29 Aug 2026", location: "CBD", tone: "violet" },
+];
+
+const businessProducts: BusinessProduct[] = [
+  { name: "Soko Smash Burger", description: "Charred beef, kachumbari, smoky house sauce.", price: "KSh 780", tag: "BESTSELLER", tone: "burger" },
+  { name: "Nairobi Bowl", description: "Pilau rice, greens, grilled chicken, avocado.", price: "KSh 620", tag: "FRESH", tone: "bowl" },
+  { name: "Passion Fruit Soda", description: "Cold-pressed passion, mint, sparkling water.", price: "KSh 240", tag: "COLD", tone: "soda" },
+  { name: "Choco Mandazi", description: "Warm cardamom mandazi with dark chocolate dip.", price: "KSh 360", tag: "SWEET", tone: "sweet" },
+];
+
+const initialBusinessOrders: BusinessOrder[] = [
+  { id: "#SP-8421", customer: "Amina Njeri", item: "2× Soko Smash Burger", amount: "KSh 1,560", time: "2 min ago", status: "new" },
+  { id: "#SP-8418", customer: "Kevin Otieno", item: "1× Nairobi Bowl · 1× Soda", amount: "KSh 860", time: "14 min ago", status: "preparing" },
+  { id: "#SP-8412", customer: "Wanjiku M.", item: "3× Choco Mandazi", amount: "KSh 1,080", time: "28 min ago", status: "out for delivery" },
+  { id: "#SP-8405", customer: "Brian K.", item: "1× Nairobi Bowl", amount: "KSh 620", time: "Today · 11:42", status: "delivered" },
 ];
 
 function StatusBar() {
@@ -519,7 +559,7 @@ function RanksScreen() {
   </section>;
 }
 
-function ProfileScreen({ onLoginAsDriver }: { onLoginAsDriver: () => void }) {
+function ProfileScreen({ onLoginAsDriver, onOpenBusiness }: { onLoginAsDriver: () => void; onOpenBusiness: () => void }) {
   const [bio, setBio] = useState("Moving through Nairobi, one good ride at a time.");
   const [editingBio, setEditingBio] = useState(false);
   const [privateAccount, setPrivateAccount] = useState(false);
@@ -535,8 +575,41 @@ function ProfileScreen({ onLoginAsDriver }: { onLoginAsDriver: () => void }) {
     <div className="settings-card"><div className="settings-row"><div className="settings-icon gold"><ShieldCheck size={16} /></div><div className="settings-copy"><strong>Private account</strong><span>Only approved people can see your activity</span></div><button className={`switch${privateAccount ? " on" : ""}`} type="button" role="switch" aria-checked={privateAccount} aria-label="Private account" onClick={() => setPrivateAccount(!privateAccount)}><i /></button></div><div className="settings-divider" /><div className="settings-row language-row"><div className="settings-icon crimson"><Languages size={16} /></div><div className="settings-copy"><strong>Language</strong><span>Choose your preferred Spike language</span></div></div><div className="language-pills">{languages.map((item) => <button key={item} className={language === item ? "active" : ""} type="button" onClick={() => setLanguage(item)}>{item}</button>)}</div><div className="settings-divider" /><button className="settings-row payment-row" type="button"><div className="settings-icon gold"><CreditCard size={16} /></div><div className="settings-copy"><strong>M-Pesa &amp; cards</strong><span>Add or manage payment methods</span></div><ChevronRight size={17} /></button></div>
     <div className="profile-section-heading history-heading"><span>RECENT RIDES</span><button type="button">See all <ArrowRight size={12} /></button></div>
     <div className="history-list">{rideHistory.map((ride) => <div className="history-row" key={`${ride.date}-${ride.driver}`}><div className="history-route-icon"><span /><i /><span /></div><div className="history-route"><strong>{ride.from} <ArrowRight size={11} /> {ride.to}</strong><span>{ride.date} <i /> {ride.driver}</span><small>{ride.vehicle}</small></div><div className="history-price"><strong>{ride.price}</strong><span>paid</span></div></div>)}</div>
+    <button className="business-mode-button" type="button" onClick={onOpenBusiness}><Store size={15} /><span><b>Switch to Business account</b><small>Sell meals, products, and more on Spike</small></span><ArrowRight size={15} /></button>
     <button className="driver-login-button" type="button" onClick={onLoginAsDriver}><LogIn size={15} /><span>Log in as driver</span><ArrowRight size={15} /></button>
   </section>;
+}
+
+function BusinessTopline({ tab, setTab, onExit }: { tab: BusinessTabId; setTab: (tab: BusinessTabId) => void; onExit: () => void }) {
+  return <div className="business-topline"><button className="business-exit" type="button" aria-label="Return to passenger app" onClick={onExit}><ArrowLeft size={17} /></button><div className="business-brand"><span className="business-brand-mark"><Store size={15} /></span><div><strong>Soko Supperclub</strong><small>BUSINESS ACCOUNT · KILIMANI</small></div></div><button className="business-orders-badge" type="button" aria-label="Open orders" onClick={() => setTab("orders")}><ClipboardList size={16} /><b>3</b></button></div>;
+}
+
+function ProductVisual({ tone }: { tone: string }) {
+  return <div className={`product-visual product-${tone}`}><span>{tone === "burger" ? "🍔" : tone === "bowl" ? "🥗" : tone === "soda" ? "🥤" : "🍫"}</span><i>✦</i></div>;
+}
+
+function BusinessStorefront({ onOrder }: { onOrder: (product: BusinessProduct) => void }) {
+  return <section className="business-screen business-storefront" aria-label="Business storefront"><div className="storefront-hero"><div className="storefront-cover" /><div className="storefront-identity"><div className="storefront-avatar"><ChefHat size={22} /></div><div><h1>Soko Supperclub</h1><p><span className="open-dot" /> Open now · 25–35 min</p></div><span className="storefront-rating"><Star size={11} fill="currentColor" /> 4.9</span></div><p className="storefront-bio">Nairobi comfort food with a little more soul. Made fresh in Kilimani.</p><div className="storefront-meta"><span><MapPin size={11} /> Kilimani, Nairobi</span><span><Truck size={11} /> Spike delivery</span></div></div><div className="business-section-heading"><div><span>THE MENU</span><h2>Made for your mood.</h2></div><span className="menu-count">{businessProducts.length} items</span></div><div className="business-product-list">{businessProducts.map((product) => <article className="business-product-card" key={product.name}><ProductVisual tone={product.tone} /><div className="business-product-copy"><div className="product-title-row"><div><span className="product-tag">{product.tag}</span><h3>{product.name}</h3></div><strong>{product.price}</strong></div><p>{product.description}</p><button type="button" onClick={() => onOrder(product)}><ShoppingBag size={13} /> Order for delivery <ArrowRight size={13} /></button></div></article>)}</div><div className="storefront-note"><ShieldCheck size={14} /><span>Every order is tracked by Spike from kitchen to door.</span></div></section>;
+}
+
+function OrderStatusIcon({ status }: { status: BusinessOrder["status"] }) {
+  if (status === "new") return <Clock3 size={14} />;
+  if (status === "preparing") return <ChefHat size={14} />;
+  if (status === "out for delivery") return <Truck size={14} />;
+  return <CircleCheck size={14} />;
+}
+
+function BusinessOrders({ orders, setOrders }: { orders: BusinessOrder[]; setOrders: (orders: BusinessOrder[]) => void }) {
+  const updateStatus = (id: string) => setOrders(orders.map((order) => order.id === id ? { ...order, status: order.status === "new" ? "preparing" : order.status === "preparing" ? "out for delivery" : order.status === "out for delivery" ? "delivered" : "delivered" } : order));
+  const active = orders.filter((order) => order.status !== "delivered").length;
+  return <section className="business-screen business-orders" aria-label="Business orders"><div className="orders-heading"><div><p className="eyebrow crimson">SOKO / ORDERS</p><h1>Keep it<br />moving.</h1><p>Live delivery requests from your customers.</p></div><div className="orders-live-badge"><span /> LIVE</div></div><div className="orders-summary"><div><span>ACTIVE NOW</span><strong>{active}</strong><small>orders in motion</small></div><i /><div><span>THIS WEEK</span><strong>KSh 48.6K</strong><small>gross sales</small></div><i /><div><span>AVG. RATING</span><strong>4.9</strong><small>from 82 orders</small></div></div><div className="orders-list-heading"><span>DELIVERY QUEUE</span><small>{active} active requests</small></div><div className="business-orders-list">{orders.map((order) => <article className={`business-order-card order-${order.status.replaceAll(" ", "-")}`} key={order.id}><div className="order-card-top"><span className="order-id">{order.id}</span><span className="order-time">{order.time}</span><span className="order-status"><OrderStatusIcon status={order.status} /> {order.status}</span></div><div className="order-main"><div className="order-customer-avatar">{order.customer.split(" ").map((part) => part[0]).join("").slice(0, 2)}</div><div className="order-customer"><strong>{order.customer}</strong><span>{order.item}</span><small><MapPin size={10} /> Delivery around Kilimani</small></div><strong className="order-amount">{order.amount}</strong></div>{order.status !== "delivered" && <button className="advance-order" type="button" onClick={() => updateStatus(order.id)}>{order.status === "new" ? "Start preparing" : order.status === "preparing" ? "Mark out for delivery" : "Mark delivered"}<ArrowRight size={13} /></button>}{order.status === "delivered" && <div className="delivered-note"><CircleCheck size={13} /> Delivered successfully</div>}</article>)}</div></section>;
+}
+
+function BusinessShell({ onExit }: { onExit: () => void }) {
+  const [tab, setTab] = useState<BusinessTabId>("storefront");
+  const [orders, setOrders] = useState<BusinessOrder[]>(initialBusinessOrders);
+  const placeOrder = (product: BusinessProduct) => setOrders((current) => [{ id: `#SP-${8422 + current.length}`, customer: "You", item: `1× ${product.name}`, amount: product.price, time: "just now", status: "new" }, ...current]);
+  return <div className="business-app"><div className="business-app-content"><BusinessTopline tab={tab} setTab={setTab} onExit={onExit} />{tab === "storefront" ? <BusinessStorefront onOrder={placeOrder} /> : <BusinessOrders orders={orders} setOrders={setOrders} />}</div><nav className="business-bottom-nav" aria-label="Business navigation"><button className={tab === "storefront" ? "active" : ""} type="button" onClick={() => setTab("storefront")}><Store size={18} /><small>Storefront</small></button><button className={tab === "orders" ? "active" : ""} type="button" onClick={() => setTab("orders")}><ClipboardList size={18} /><small>Orders <b>{orders.filter((order) => order.status !== "delivered").length}</b></small></button></nav></div>;
 }
 
 function DriverTopline({ mode, onModeChange, onLogout }: { mode: DriverMode; onModeChange: (mode: DriverMode) => void; onLogout: () => void }) {
@@ -603,5 +676,5 @@ export default function Home() {
   const [role, setRole] = useState<DriverRole>("passenger");
   const [mascotHunt, setMascotHunt] = useState(false);
   const activeScreen = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
-  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{role === "driver" ? <DriverShell onLogout={() => setRole("passenger")} /> : mascotHunt ? <MascotHuntScreen onExit={() => setMascotHunt(false)} /> : activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed onOpenMascotHunt={() => setMascotHunt(true)} /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen onLoginAsDriver={() => setRole("driver")} /> : <PlaceholderScreen tab={activeScreen} />}</div>{role === "passenger" && !mascotHunt && <Mascot />}{role === "passenger" && !mascotHunt ? <BottomNav activeTab={activeTab} onChange={setActiveTab} /> : null}<div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
+  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{role === "driver" ? <DriverShell onLogout={() => setRole("passenger")} /> : role === "business" ? <BusinessShell onExit={() => setRole("passenger")} /> : mascotHunt ? <MascotHuntScreen onExit={() => setMascotHunt(false)} /> : activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed onOpenMascotHunt={() => setMascotHunt(true)} /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen onLoginAsDriver={() => setRole("driver")} onOpenBusiness={() => setRole("business")} /> : <PlaceholderScreen tab={activeScreen} />}</div>{role === "passenger" && !mascotHunt && <Mascot />}{role === "passenger" && !mascotHunt ? <BottomNav activeTab={activeTab} onChange={setActiveTab} /> : null}<div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
 }
