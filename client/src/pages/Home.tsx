@@ -10,12 +10,15 @@ import {
   CircleUserRound,
   Compass,
   Crown,
+  CreditCard,
   Heart,
+  Languages,
   LoaderCircle,
   MapPin,
   MessageCircle,
   MessageSquare,
   Navigation,
+  Pencil,
   Phone,
   RotateCcw,
   Send,
@@ -80,6 +83,15 @@ type RankEntry = {
   stat: string;
   detail: string;
   accent: Accent;
+};
+
+type RideHistoryEntry = {
+  from: string;
+  to: string;
+  date: string;
+  driver: string;
+  price: string;
+  vehicle: string;
 };
 
 const tabs: Tab[] = [
@@ -247,6 +259,13 @@ const hunterRanks: RankEntry[] = [
   { name: "Wesley K.", initials: "WK", stat: "19 mascots", detail: "Bronze tier · KSh 12K prizes", accent: "gold" },
   { name: "Maya Maina", initials: "MM", stat: "16 mascots", detail: "Bronze tier · KSh 9K prizes", accent: "gold" },
   { name: "Jojo Finds", initials: "JF", stat: "13 mascots", detail: "Bronze tier · KSh 7K prizes", accent: "gold" },
+];
+
+const rideHistory: RideHistoryEntry[] = [
+  { from: "Westlands", to: "JKIA · Terminal 1A", date: "Today · 08:42", driver: "Alex Mwangi", price: "KSh 480", vehicle: "Spike Econ" },
+  { from: "Kilimani", to: "Lavington Mall", date: "Yesterday · 19:16", driver: "Mercy Wanjiku", price: "KSh 260", vehicle: "Boda Spike" },
+  { from: "Karen", to: "Westlands", date: "Tue, 03 Sep · 14:05", driver: "Brian Otieno", price: "KSh 720", vehicle: "Spike Gold" },
+  { from: "CBD · Kimathi St", to: "Upper Hill", date: "Sun, 01 Sep · 11:28", driver: "Kevin Kiptoo", price: "KSh 310", vehicle: "Spike Econ" },
 ];
 
 function StatusBar() {
@@ -423,6 +442,25 @@ function RanksScreen() {
   </section>;
 }
 
+function ProfileScreen() {
+  const [bio, setBio] = useState("Moving through Nairobi, one good ride at a time.");
+  const [editingBio, setEditingBio] = useState(false);
+  const [privateAccount, setPrivateAccount] = useState(false);
+  const [language, setLanguage] = useState("English");
+  const languages = ["English", "Swahili", "French", "Luo", "Kikuyu"];
+
+  return <section className="profile-screen" aria-label="Spike profile">
+    <div className="profile-header"><div><p className="eyebrow crimson">SPIKE / PROFILE</p><h1>Your Spike ID.</h1></div><button className="profile-more" type="button" aria-label="Profile options"><span /><span /><span /></button></div>
+    <div className="profile-identity"><div className="profile-avatar"><span>AN</span><i /></div><div className="profile-name-block"><h2>Amina Njeri</h2><div className="profile-rating"><Star size={14} fill="currentColor" /><strong>4.98</strong><span>·</span><span>86 rides</span></div></div><span className="profile-member">SINCE 2026</span></div>
+    <div className="bio-row">{editingBio ? <input className="bio-input" autoFocus value={bio} maxLength={76} onChange={(event) => setBio(event.target.value)} onBlur={() => setEditingBio(false)} onKeyDown={(event) => { if (event.key === "Enter") setEditingBio(false); }} aria-label="Edit profile bio" /> : <p>{bio}</p>}<button className="bio-edit" type="button" aria-label="Edit bio" onClick={() => setEditingBio(true)}><Pencil size={13} /></button></div>
+    <div className="profile-stats"><div className="profile-stat-card"><Sparkles size={15} /><strong>12</strong><span>Mascots caught</span></div><div className="profile-stat-card"><Zap size={15} /><strong>KSh 2.4K</strong><span>Rewards earned</span></div><div className="profile-stat-card"><Heart size={15} /><strong>08</strong><span>Favorite drivers</span></div></div>
+    <div className="profile-section-heading"><span>YOUR SETTINGS</span><small>PRIVATE BY DEFAULT</small></div>
+    <div className="settings-card"><div className="settings-row"><div className="settings-icon gold"><ShieldCheck size={16} /></div><div className="settings-copy"><strong>Private account</strong><span>Only approved people can see your activity</span></div><button className={`switch${privateAccount ? " on" : ""}`} type="button" role="switch" aria-checked={privateAccount} aria-label="Private account" onClick={() => setPrivateAccount(!privateAccount)}><i /></button></div><div className="settings-divider" /><div className="settings-row language-row"><div className="settings-icon crimson"><Languages size={16} /></div><div className="settings-copy"><strong>Language</strong><span>Choose your preferred Spike language</span></div></div><div className="language-pills">{languages.map((item) => <button key={item} className={language === item ? "active" : ""} type="button" onClick={() => setLanguage(item)}>{item}</button>)}</div><div className="settings-divider" /><button className="settings-row payment-row" type="button"><div className="settings-icon gold"><CreditCard size={16} /></div><div className="settings-copy"><strong>M-Pesa &amp; cards</strong><span>Add or manage payment methods</span></div><ChevronRight size={17} /></button></div>
+    <div className="profile-section-heading history-heading"><span>RECENT RIDES</span><button type="button">See all <ArrowRight size={12} /></button></div>
+    <div className="history-list">{rideHistory.map((ride) => <div className="history-row" key={`${ride.date}-${ride.driver}`}><div className="history-route-icon"><span /><i /><span /></div><div className="history-route"><strong>{ride.from} <ArrowRight size={11} /> {ride.to}</strong><span>{ride.date} <i /> {ride.driver}</span><small>{ride.vehicle}</small></div><div className="history-price"><strong>{ride.price}</strong><span>paid</span></div></div>)}</div>
+  </section>;
+}
+
 function PlaceholderScreen({ tab }: { tab: Tab }) {
   const Icon = tab.icon;
   return <section className="placeholder-screen" aria-labelledby={`${tab.id}-title`}><div className="screen-topline"><BrandMark /><div className="city-pill"><MapPin size={13} strokeWidth={2.25} /><span>Nairobi</span></div></div><div className={`placeholder-art ${tab.accent}`} aria-hidden="true"><div className="art-grid" /><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" /><div className="art-glow" /><div className="art-icon-wrap"><Icon size={30} strokeWidth={1.7} /></div><span className="art-index">/{tab.glyph}</span></div><div className="placeholder-copy"><p className={`eyebrow ${tab.accent}`}>{tab.eyebrow}</p><h1 id={`${tab.id}-title`}>{tab.title.split("\n").map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h1><p className="placeholder-description">{tab.description}</p></div><div className="launch-note"><span className="launch-dot" /><span>Shell ready · feature layer next</span><ChevronRight size={15} /></div></section>;
@@ -440,5 +478,5 @@ function Mascot() {
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("ride");
   const activeScreen = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
-  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed /> : activeTab === "ranks" ? <RanksScreen /> : <PlaceholderScreen tab={activeScreen} />}</div><Mascot /><BottomNav activeTab={activeTab} onChange={setActiveTab} /><div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
+  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed /> : activeTab === "ranks" ? <RanksScreen /> : activeTab === "profile" ? <ProfileScreen /> : <PlaceholderScreen tab={activeScreen} />}</div><Mascot /><BottomNav activeTab={activeTab} onChange={setActiveTab} /><div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
 }
