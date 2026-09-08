@@ -35,6 +35,7 @@ type TabId = "ride" | "discover" | "ranks" | "profile";
 type RideStep = "pick" | "bid" | "matching" | "matched";
 type Accent = "gold" | "crimson";
 type DiscoverCategory = "Mascot Hunt" | "Driver Life" | "Business";
+type RankView = "riders" | "hunters";
 
 type Tab = {
   id: TabId;
@@ -71,6 +72,14 @@ type DiscoverPost = {
   location: string;
   initials: string;
   visual: string;
+};
+
+type RankEntry = {
+  name: string;
+  initials: string;
+  stat: string;
+  detail: string;
+  accent: Accent;
 };
 
 const tabs: Tab[] = [
@@ -220,6 +229,26 @@ const discoverPosts: DiscoverPost[] = [
   },
 ];
 
+const riderRanks: RankEntry[] = [
+  { name: "Brian Otieno", initials: "BO", stat: "1,842 trips", detail: "KSh 284K earned", accent: "gold" },
+  { name: "Alex Mwangi", initials: "AM", stat: "1,248 trips", detail: "KSh 198K earned", accent: "gold" },
+  { name: "Mercy Wanjiku", initials: "MW", stat: "1,106 trips", detail: "KSh 176K earned", accent: "gold" },
+  { name: "Kevin Kiptoo", initials: "KK", stat: "987 trips", detail: "KSh 154K earned", accent: "gold" },
+  { name: "Faith Achieng", initials: "FA", stat: "914 trips", detail: "KSh 149K earned", accent: "gold" },
+  { name: "Sammy Kamau", initials: "SK", stat: "866 trips", detail: "KSh 137K earned", accent: "gold" },
+  { name: "Joy Njeri", initials: "JN", stat: "821 trips", detail: "KSh 129K earned", accent: "gold" },
+];
+
+const hunterRanks: RankEntry[] = [
+  { name: "Nia Karanja", initials: "NK", stat: "48 mascots", detail: "Gold tier · KSh 42K prizes", accent: "gold" },
+  { name: "Tasha Wambui", initials: "TW", stat: "36 mascots", detail: "Gold tier · KSh 31K prizes", accent: "gold" },
+  { name: "The Green Run", initials: "GR", stat: "29 mascots", detail: "Silver tier · KSh 24K prizes", accent: "gold" },
+  { name: "Nairobi Nia", initials: "NN", stat: "24 mascots", detail: "Silver tier · KSh 18K prizes", accent: "gold" },
+  { name: "Wesley K.", initials: "WK", stat: "19 mascots", detail: "Bronze tier · KSh 12K prizes", accent: "gold" },
+  { name: "Maya Maina", initials: "MM", stat: "16 mascots", detail: "Bronze tier · KSh 9K prizes", accent: "gold" },
+  { name: "Jojo Finds", initials: "JF", stat: "13 mascots", detail: "Bronze tier · KSh 7K prizes", accent: "gold" },
+];
+
 function StatusBar() {
   return (
     <div className="status-bar" aria-label="Status bar">
@@ -356,6 +385,44 @@ function DiscoverFeed() {
   return <section className="discover-screen" aria-label="Discover feed"><div className="discover-feed">{discoverPosts.map((post) => <DiscoverPost key={post.id} post={post} liked={likedPosts.includes(post.id)} onToggleLike={() => toggleLike(post.id)} />)}</div></section>;
 }
 
+function RankPodium({ entries, view }: { entries: RankEntry[]; view: RankView }) {
+  const podium = [entries[1], entries[0], entries[2]];
+  const medals = ["🥈", "🥇", "🥉"];
+  return <div className={`rank-podium ${view}`}>
+    {podium.map((entry, index) => <div key={entry.name} className={`podium-place place-${index === 1 ? "first" : index === 0 ? "second" : "third"}`}>
+      <div className="podium-medal">{medals[index]}</div>
+      <div className="podium-avatar">{entry.initials}</div>
+      <strong>{entry.name}</strong>
+      <span>{view === "riders" ? entry.stat : entry.stat.replace(" mascots", "")}</span>
+      <div className="podium-block"><b>{index === 1 ? "01" : index === 0 ? "02" : "03"}</b></div>
+    </div>)}
+  </div>;
+}
+
+function RankList({ entries, view }: { entries: RankEntry[]; view: RankView }) {
+  return <div className="rank-list" aria-label={view === "riders" ? "Top riders leaderboard" : "Mascot hunters leaderboard"}>
+    {entries.map((entry, index) => <div className={`rank-list-row${index === 0 ? " leader-row" : ""}`} key={entry.name}>
+      <span className="rank-number">{String(index + 1).padStart(2, "0")}</span>
+      <span className="rank-avatar">{entry.initials}</span>
+      <div className="rank-person"><strong>{entry.name}</strong><span>{entry.detail}</span></div>
+      <div className="rank-stat"><strong>{entry.stat}</strong><span>{view === "riders" ? "on Spike" : "caught"}</span></div>
+    </div>)}
+  </div>;
+}
+
+function RanksScreen() {
+  const [view, setView] = useState<RankView>("riders");
+  const entries = view === "riders" ? riderRanks : hunterRanks;
+  return <section className="ranks-screen" aria-label="Spike ranks">
+    <div className="ranks-header"><div><p className="eyebrow gold">SPIKE / RANKS</p><h1>Earn your<br />place.</h1><p className="ranks-subtitle">Top 3 in each category win prizes every quarter.</p></div><div className="ranks-mark"><Trophy size={20} /></div></div>
+    <div className="rank-toggle" role="tablist" aria-label="Ranks category"><button className={view === "riders" ? "active" : ""} type="button" role="tab" aria-selected={view === "riders"} onClick={() => setView("riders")}><CarFront size={14} /> Top Riders</button><button className={view === "hunters" ? "active" : ""} type="button" role="tab" aria-selected={view === "hunters"} onClick={() => setView("hunters")}><Sparkles size={14} /> Mascot Hunters</button></div>
+    <div className="ranks-mode-line"><span>{view === "riders" ? "DRIVER LEAGUE" : "CITYWIDE HUNT"}</span><span className="live-rank"><span /> LIVE RANKINGS</span></div>
+    <RankPodium entries={entries} view={view} />
+    <div className="leaderboard-heading"><div><span>THE BOARD</span><h2>{view === "riders" ? "Top riders" : "Top hunters"}</h2></div><span className="season-pill">Q3 · 2026</span></div>
+    <RankList entries={entries} view={view} />
+  </section>;
+}
+
 function PlaceholderScreen({ tab }: { tab: Tab }) {
   const Icon = tab.icon;
   return <section className="placeholder-screen" aria-labelledby={`${tab.id}-title`}><div className="screen-topline"><BrandMark /><div className="city-pill"><MapPin size={13} strokeWidth={2.25} /><span>Nairobi</span></div></div><div className={`placeholder-art ${tab.accent}`} aria-hidden="true"><div className="art-grid" /><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" /><div className="art-glow" /><div className="art-icon-wrap"><Icon size={30} strokeWidth={1.7} /></div><span className="art-index">/{tab.glyph}</span></div><div className="placeholder-copy"><p className={`eyebrow ${tab.accent}`}>{tab.eyebrow}</p><h1 id={`${tab.id}-title`}>{tab.title.split("\n").map((line, index) => <span key={line}>{index > 0 && <br />}{line}</span>)}</h1><p className="placeholder-description">{tab.description}</p></div><div className="launch-note"><span className="launch-dot" /><span>Shell ready · feature layer next</span><ChevronRight size={15} /></div></section>;
@@ -373,5 +440,5 @@ function Mascot() {
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabId>("ride");
   const activeScreen = tabs.find((tab) => tab.id === activeTab) ?? tabs[0];
-  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed /> : <PlaceholderScreen tab={activeScreen} />}</div><Mascot /><BottomNav activeTab={activeTab} onChange={setActiveTab} /><div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
+  return <main className="app-stage"><div className="phone-shell"><StatusBar /><div className="app-content">{activeTab === "ride" ? <RideFlow /> : activeTab === "discover" ? <DiscoverFeed /> : activeTab === "ranks" ? <RanksScreen /> : <PlaceholderScreen tab={activeScreen} />}</div><Mascot /><BottomNav activeTab={activeTab} onChange={setActiveTab} /><div className="home-indicator" aria-hidden="true" /></div><div className="stage-caption" aria-hidden="true"><CircleUserRound size={14} /> <span>Spike · Nairobi, KE</span></div></main>;
 }
